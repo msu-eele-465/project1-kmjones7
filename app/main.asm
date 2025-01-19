@@ -81,15 +81,16 @@ SetupP1     bic.b   #BIT0,&P1OUT            ; Clear P1.0 output
             bis.b   #BIT0,&P1DIR            ; setup P1.0 output
 
             bic.b   #BIT6,&P6OUT            ; Clear P6.6 output
-            bis.b   #BIT6,&P6DIR             ; setup P6.6 LED output
+            bis.b   #BIT6,&P6DIR            ; setup P6.6 LED output
             bic.w   #LOCKLPM5,&PM5CTL0      ; Unlock I/O pins
 
 
 ; -- Setup Timer B0 
             bis.w   #TBCLR, &TB0CTL          ; Clear Timer and Dividers
-            bis.w   #TBSSEL__SMCLK, &TB0CTL  ; Select ACLK as Timer source
+            bis.w   #TBSSEL__ACLK, &TB0CTL   ; Select ACLK as Timer source
+            bis.w   #CNTL_1, &TB0CTL         ; 12 Bit Counter Length
             bis.w   #MC__CONTINUOUS, &TB0CTL ; Choose Continuous Counting
-            bis.w   #ID__8, &TB0CTL          ; Divide by 4
+            bis.w   #ID__8, &TB0CTL          ; Divide by 8
             bis.w   #TBIE, &TB0CTL           ; Enable Overflow Interrupt
             bic.w   #TBIFG, &TB0CTL          ; Clear Interrupt Flag
             bis.w   #GIE, SR                 ; Enable Maskable Interrupts
@@ -121,7 +122,7 @@ one_sec:                                ; clock is 250kHz
 
 inner:                                  ; count up to 21010 
             inc.w   R15                 ; add 1 to R15
-            cmp.w   #21010, R15         ; compare R15 to 21010
+            cmp.w   #42000, R15         ; compare R15 to 21010
             jnz     inner               ; if R15 is 21010 continue, else repeat subroutine
             ret                         ; return to one_sec
 
