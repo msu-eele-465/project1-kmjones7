@@ -97,7 +97,7 @@ SetupP1     bic.b   #BIT0,&P1OUT            ; Clear P1.0 output
             
             
 main:
-            mov.w   #0, R14                 ; put 0 into R15
+            mov.w   #0, R14                 ; put 0 into R14
             call #one_sec                   ; call one_sec Delay
             jmp main                        ; loop
 
@@ -105,25 +105,25 @@ main:
 ;           Subroutines
 ;------------------------------------------------------------------------------
 
-; The following subroutines will toggle LED (P1.0) every 0.5s. Clock is set to 250kHz.
-; Subroutines will count up to 21010 (25000 created a period that was longer
-; than 1s) in R15, reset, and repeat 5 times to achieve 
-; 0.5s with a clockrate of 250kHz. The LED will toggle and the whole process will repeat. 
+; The following subroutines will toggle LED (P1.0) every 1s. Clock is set to 250kHz.
+; Subroutines will count up to 42000
+; in R15, reset, and repeat 5 times.
+; The LED will toggle and the whole process will repeat. 
 
 one_sec:                                ; clock is 250kHz
             mov.w   #0, R15             ; put 0 in R15
             call #inner                 ; call nested loop
             inc.w   R14                 ; add 1 to R14
             cmp.w   #5, R14             ; compare R14 to 5
-            jnz     one_sec             ; if R14 is 5 continue (total count time = 0.5s), else repeat subroutine
+            jnz     one_sec             ; if R14 is 5 continue (total count time = 1s), else repeat subroutine
             xor.b   #BIT0, &P1OUT       ; toggle LED
             mov.w   #0, R14             ; reset 5 counter
             ret                         ; return to main
 
-inner:                                  ; count up to 21010 
+inner:                                  ; count up to 42000
             inc.w   R15                 ; add 1 to R15
-            cmp.w   #42000, R15         ; compare R15 to 21010
-            jnz     inner               ; if R15 is 21010 continue, else repeat subroutine
+            cmp.w   #42000, R15         ; compare R15 to 42000
+            jnz     inner               ; if R15 is 42000 continue, else repeat subroutine
             ret                         ; return to one_sec
 
 ;------------------------------------------------------------------------------
