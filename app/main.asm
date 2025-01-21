@@ -78,18 +78,69 @@
 RESET       mov.w   #__STACK_END,SP         ; Initialize stack pointer
 StopWDT     mov.w   #WDTPW+WDTHOLD,&WDTCTL  ; Stop WDT
 SetupP1     bic.b   #BIT0,&P1OUT            ; Clear P1.0 output
-            bis.b   #BIT0,&P1DIR            ; P1.0 output
-            bic.w   #LOCKLPM5,&PM5CTL0       ; Unlock I/O pins
+            bis.b   #BIT0,&P1DIR            ; setup P1.0 output
 
-Mainloop    xor.b   #BIT0,&P1OUT            ; Toggle P1.0 every 0.1s
-Wait        mov.w   #50000,R15              ; Delay to R15
-L1          dec.w   R15                     ; Decrement R15
-            jnz     L1                      ; Delay over?
-            jmp     Mainloop                ; Again
-            NOP
+            bic.b   #BIT6,&P6OUT            ; Clear P6.6 output
+            bis.b   #BIT6,&P6DIR            ; setup P6.6 LED output
+            bic.w   #LOCKLPM5,&PM5CTL0      ; Unlock I/O pins
+
+
+; -- Setup Timer B0 
+            bis.w   #TBCLR, &TB0CTL          ; Clear Timer and Dividers
+            bis.w   #TBSSEL__ACLK, &TB0CTL   ; Select ACLK as Timer source
+            bis.w   #CNTL_1, &TB0CTL         ; 12 Bit Counter Length
+            bis.w   #MC__CONTINUOUS, &TB0CTL ; Choose Continuous Counting
+            bis.w   #ID__8, &TB0CTL          ; Divide by 8
+            bis.w   #TBIE, &TB0CTL           ; Enable Overflow Interrupt
+            bic.w   #TBIFG, &TB0CTL          ; Clear Interrupt Flag
+            bis.w   #GIE, SR                 ; Enable Maskable Interrupts
+            
+            
+main:
+            mov.w   #0, R14                 ; put 0 into R14
+            call #one_sec                   ; call one_sec Delay
+            jmp main                        ; loop
+
+;------------------------------------------------------------------------------
+;           Subroutines
+;------------------------------------------------------------------------------
+
+; The following subroutines will toggle LED (P1.0) every 1s. Clock is set to 250kHz.
+; Subroutines will count up to 42000
+; in R15, reset, and repeat 5 times.
+; The LED will toggle and the whole process will repeat. 
+
+one_sec:                                ; clock is 250kHz
+            mov.w   #0, R15             ; put 0 in R15
+            call #inner                 ; call nested loop
+            inc.w   R14                 ; add 1 to R14
+            cmp.w   #5, R14             ; compare R14 to 5
+            jnz     one_sec             ; if R14 is 5 continue (total count time = 1s), else repeat subroutine
+            xor.b   #BIT0, &P1OUT       ; toggle LED
+            mov.w   #0, R14             ; reset 5 counter
+            ret                         ; return to main
+
+inner:                                  ; count up to 42000
+            inc.w   R15                 ; add 1 to R15
+            cmp.w   #42000, R15         ; compare R15 to 42000
+            jnz     inner               ; if R15 is 42000 continue, else repeat subroutine
+            ret                         ; return to one_sec
+
+;------------------------------------------------------------------------------
+;           Interrupt Service Routines
+;------------------------------------------------------------------------------
+ISR:
+            xor.b   #BIT6, &P6OUT       ; toggle P6.6 LED
+            bic.w   #TBIFG, &TB0CTL     ; Clears TBIFG Flag
+            reti                        ; return to main program
+
+
+
 ;------------------------------------------------------------------------------
 ;           Interrupt Vectors
 ;------------------------------------------------------------------------------
             .sect   RESET_VECTOR            ; MSP430 RESET Vector
             .short  RESET                   ;
-            .end
+
+            .sect   ".int42"                ; at this vector address
+            .short  ISR                     ; download the starting address of the ISR
